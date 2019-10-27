@@ -79,6 +79,28 @@ struct RenderRequest {
     math::matrix4 matProj;
 };
 
+static math::matrix4 MakeRotationZ(float flRot) {
+    math::matrix4 ret(1.0f);
+
+    ret.idx(0, 0) = cos(flRot);
+    ret.idx(0, 1) = sin(flRot);
+    ret.idx(1, 0) = -sin(flRot);
+    ret.idx(1, 1) = cos(flRot);
+
+    return ret;
+}
+
+static math::matrix4 MakeRotationY(float flRot) {
+    math::matrix4 ret(1.0f);
+
+    ret.idx(0, 0) = cos(flRot);
+    ret.idx(0, 2) = sin(flRot);
+    ret.idx(2, 0) = -sin(flRot);
+    ret.idx(2, 2) = cos(flRot);
+
+    return ret;
+}
+
 static void DrawPolygonSet(const RenderRequest& rr) {
     math::matrix4 matView, matMVP;
     int iMVP;
@@ -86,7 +108,7 @@ static void DrawPolygonSet(const RenderRequest& rr) {
     // Bind shader
     glUseProgram(rr.iShaderProgram);
     // Set up matrices
-    matView = math::translate(rr.vCamera[0], rr.vCamera[1], rr.vCamera[2]);
+    matView = math::translate(rr.vCamera[0], rr.vCamera[1], rr.vCamera[2]) * MakeRotationZ(rr.vRotation[2]) * MakeRotationY(rr.vRotation[1]);
     //matMVP = rr.matProj * matView;
     matMVP = matView * rr.matProj;
     iMVP = glGetUniformLocation(rr.iShaderProgram, "matMVP");
@@ -218,6 +240,7 @@ eCameraMovement MapKeyMovement(SDL_Keycode vk) {
 
 static void MoveCamera(vector4* camera, vector4* rotation, int eMovement, float dt) {
     vector4 ds;
+    vector4 dtheta;
 
     if (eMovement & eCameraForward) {
         ds = ds + vector4{0, 0, 1};
@@ -231,12 +254,18 @@ static void MoveCamera(vector4* camera, vector4* rotation, int eMovement, float 
     if (eMovement & eCameraStrafeRight) {
         ds = ds + vector4{1, 0, 0};
     }
+    if (eMovement & eCameraTurnLeft) {
+        dtheta = dtheta + vector4{ 0, 2 * M_PI, 0 };
+    }
+    if (eMovement & eCameraTurnRight) {
+        dtheta = dtheta + vector4{ 0, 2 * -M_PI, 0 };
+    }
 
     ds = dt * ds;
-
-    printf("%f\n", dt);
+    dtheta = dt * dtheta;
 
     *camera = *camera + ds;
+    *rotation = *rotation + dtheta;
 }
 
 int main(int argc, char** argv) {
