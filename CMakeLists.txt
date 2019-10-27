@@ -1,4 +1,8 @@
+cmake_minimum_required(VERSION 3.10)
 project(bsp CXX)
+
+add_subdirectory(third_party/SDL2)
+add_subdirectory(third_party/glad)
 
 set(SRC_BSP
 	bsp.cpp
@@ -13,4 +17,4 @@ set(SRC_EXE
 )
 
 add_executable(bsp_main ${SRC_EXE})
-target_link_libraries(bsp_main bsp)
+target_link_libraries(bsp_main bsp SDL2 glad)
