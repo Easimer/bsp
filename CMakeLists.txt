@@ -17,7 +17,12 @@ add_library(bsp STATIC ${SRC_BSP})
 
 set(SRC_EXE
 	main.cpp
+
+	IInputHandler.h
+	IGraphicsEngine.h
+
+	sdl2_core.cpp
 )
 
 add_executable(bsp_main ${SRC_EXE})
-target_link_libraries(bsp_main bsp SDL2 glad)
+target_link_libraries(bsp_main bsp SDL2-static glad)

@@ -197,3 +197,25 @@ bool SplitPolygon(polygon* res0, polygon* res1, const polygon& splitted, const p
 
     return ret;
 }
+
+polygon_container FanTriangulate(const polygon& poly) {
+    polygon_container ret;
+
+    assert(poly.cnt >= 3);
+
+    for (int vertexIdx = 1; vertexIdx < poly.cnt - 2; vertexIdx++) {
+        polygon tri;
+        tri += poly.points[0];
+        tri += poly.points[vertexIdx];
+        tri += poly.points[vertexIdx + 1];
+        ret += tri;
+    }
+
+    polygon last;
+    last += poly.points[0];
+    last += poly.points[poly.cnt - 2];
+    last += poly.points[poly.cnt - 1];
+    ret += last;
+
+    return ret;
+}

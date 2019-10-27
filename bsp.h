@@ -134,3 +134,4 @@ struct bsp_node {
 #define SIDE_BACK (-1)
 
 bool SplitPolygon(polygon* res0, polygon* res1, const polygon& splitted, const plane& splitter);
+polygon_container FanTriangulate(const polygon& poly);
