@@ -74,7 +74,7 @@ static void tri_test() {
 
 struct RenderRequest {
     polygon_container const * pcPolys;
-    vector4 vCamera;
+    vector4 vCamera, vRotation;
     GLuint iShaderProgram;
     math::matrix4 matProj;
 };
@@ -194,6 +194,51 @@ static void SetupProjection(int width, int height, RenderRequest* rr) {
     math::perspective(rr->matProj, matProjInv, width, height, M_PI / 4.0f, 0.01f, 1000.0f);
 }
 
+enum eCameraMovement {
+    eCameraInvalid = 0,
+    eCameraForward = 1,
+    eCameraBackward = 2,
+    eCameraStrafeLeft = 4,
+    eCameraStrafeRight = 8,
+    eCameraTurnLeft = 16,
+    eCameraTurnRight = 32,
+};
+
+eCameraMovement MapKeyMovement(SDL_Keycode vk) {
+    switch (vk) {
+    case SDLK_w: return eCameraForward;
+    case SDLK_s: return eCameraBackward;
+    case SDLK_a: return eCameraTurnLeft;
+    case SDLK_d: return eCameraTurnRight;
+    case SDLK_COMMA: return eCameraStrafeLeft;
+    case SDLK_PERIOD: return eCameraStrafeRight;
+    default: return eCameraInvalid;
+    }
+}
+
+static void MoveCamera(vector4* camera, vector4* rotation, int eMovement, float dt) {
+    vector4 ds;
+
+    if (eMovement & eCameraForward) {
+        ds = ds + vector4{0, 0, 1};
+    }
+    if (eMovement & eCameraBackward) {
+        ds = ds + vector4{0, 0, -1};
+    }
+    if (eMovement & eCameraStrafeLeft) {
+        ds = ds + vector4{-1, 0, 0};
+    }
+    if (eMovement & eCameraStrafeRight) {
+        ds = ds + vector4{1, 0, 0};
+    }
+
+    ds = dt * ds;
+
+    printf("%f\n", dt);
+
+    *camera = *camera + ds;
+}
+
 int main(int argc, char** argv) {
     SDL_Window* hWnd;
     SDL_GLContext hGLCTX;
@@ -201,6 +246,8 @@ int main(int argc, char** argv) {
     bool bDone = false;
     polygon_container pc;
     RenderRequest rr;
+    int nCameraMovement = 0;
+    Uint64 tNow, tLast;
 
     SDL_SetMainReady();
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
@@ -233,9 +280,10 @@ int main(int argc, char** argv) {
     pc += square;
 
     glClearColor(0.7, 0.2, 0.3, 1.0);
+    tNow = SDL_GetPerformanceCounter();
+    tLast = 0;
 
     while (!bDone) {
-        glClear(GL_COLOR_BUFFER_BIT);
         SDL_Event ev;
         while (SDL_PollEvent(&ev)) {
             switch (ev.type) {
@@ -243,10 +291,21 @@ int main(int argc, char** argv) {
                 bDone = true;
                 break;
             case SDL_KEYUP:
+                nCameraMovement &= ~(MapKeyMovement(ev.key.keysym.sym));
+                break;
+            case SDL_KEYDOWN:
+                nCameraMovement |= MapKeyMovement(ev.key.keysym.sym);
                 break;
             }
         }
 
+        tLast = tNow;
+        tNow = SDL_GetPerformanceCounter();
+        float dt = (float)(((tNow - tLast)) / (double)SDL_GetPerformanceFrequency());
+
+        MoveCamera(&rr.vCamera, &rr.vRotation, nCameraMovement, dt);
+
+        glClear(GL_COLOR_BUFFER_BIT);
         DrawPolygonSet(rr);
         SDL_GL_SwapWindow(hWnd);
     }
