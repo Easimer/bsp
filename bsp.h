@@ -107,6 +107,24 @@ struct line_container {
     }
 };
 
+#define POLYCONT_MAX_POLYS ((POLYGON_MAX_POINTS - 2) * 3)
+
+struct polygon_container {
+    int cnt = 0;
+    polygon polygons[POLYCONT_MAX_POLYS];
+
+    polygon_container()
+        : cnt(0) {
+    }
+
+    polygon_container& operator+=(const polygon& poly) {
+        if (cnt < POLYCONT_MAX_POLYS) {
+            polygons[cnt++] = poly;
+        }
+        return *this;
+    }
+};
+
 struct bsp_node {
 
 };

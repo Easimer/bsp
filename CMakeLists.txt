@@ -8,6 +8,9 @@ set(SRC_BSP
 	bsp.cpp
 	bsp.h
 	util_vector.h
+
+	util_matrix.cpp
+	util_matrix.h
 )
 
 add_library(bsp STATIC ${SRC_BSP})

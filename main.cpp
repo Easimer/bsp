@@ -1,5 +1,6 @@
 #include <assert.h>
 #include "bsp.h"
+#include "util_matrix.h"
 
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
@@ -39,11 +40,167 @@ void test() {
     }
 }
 
+static polygon_container FanTriangulate(const polygon& poly) {
+    polygon_container ret;
+
+    assert(poly.cnt >= 3);
+
+    for (int vertexIdx = 1; vertexIdx < poly.cnt - 2; vertexIdx++) {
+        polygon tri;
+        tri += poly.points[0];
+        tri += poly.points[vertexIdx];
+        tri += poly.points[vertexIdx + 1];
+        ret += tri;
+    }
+
+    polygon last;
+    last += poly.points[0];
+    last += poly.points[poly.cnt - 2];
+    last += poly.points[poly.cnt - 1];
+    ret += last;
+
+    return ret;
+}
+
+static void tri_test() {
+    polygon octagon;
+    octagon += vector4(0, 0);
+    octagon += vector4(1, 1);
+    octagon += vector4(2, 2);
+    octagon += vector4(3, 0);
+    octagon += vector4(2, 0);
+    FanTriangulate(octagon);
+}
+
+struct RenderRequest {
+    polygon_container const * pcPolys;
+    vector4 vCamera;
+    GLuint iShaderProgram;
+    math::matrix4 matProj;
+};
+
+static void DrawPolygonSet(const RenderRequest& rr) {
+    math::matrix4 matView, matMVP;
+    int iMVP;
+    unsigned int iVAO, iVBO;
+    // Bind shader
+    glUseProgram(rr.iShaderProgram);
+    // Set up matrices
+    matView = math::translate(rr.vCamera[0], rr.vCamera[1], rr.vCamera[2]);
+    //matMVP = rr.matProj * matView;
+    matMVP = matView * rr.matProj;
+    iMVP = glGetUniformLocation(rr.iShaderProgram, "matMVP");
+    glUniformMatrix4fv(iMVP, 1, GL_FALSE, matMVP.ptr());
+    // Triangulate polygons
+    int nTotalVertices = 0;
+    polygon_container* aPolyConts = new polygon_container[rr.pcPolys->cnt];
+    for (int i = 0; i < rr.pcPolys->cnt; i++) {
+        aPolyConts[i] = FanTriangulate(rr.pcPolys->polygons[i]);
+        for (int j = 0; j < aPolyConts[i].cnt; j++) {
+            nTotalVertices += aPolyConts[i].polygons[j].cnt;
+        }
+    }
+    // Upload triangles into one VAO/VBO
+    float* aflVertices = new float[nTotalVertices * 3];
+    int iOffArray = 0;
+    for (int iPolyContIdx = 0; iPolyContIdx < rr.pcPolys->cnt; iPolyContIdx++) {
+        auto& pc = aPolyConts[iPolyContIdx];
+        for (int iPolyIdx = 0; iPolyIdx < pc.cnt; iPolyIdx++) {
+            auto& poly = pc.polygons[iPolyIdx];
+            for (int iVtxIdx = 0; iVtxIdx < poly.cnt; iVtxIdx++, iOffArray += 3) {
+                auto& point = poly.points[iVtxIdx];
+                aflVertices[iOffArray + 0] = point[0];
+                aflVertices[iOffArray + 1] = point[1];
+                aflVertices[iOffArray + 2] = point[2];
+            }
+        }
+    }
+
+    glGenVertexArrays(1, &iVAO);
+    glBindVertexArray(iVAO);
+    glGenBuffers(1, &iVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, iVBO);
+    glBufferData(GL_ARRAY_BUFFER, nTotalVertices * 3 * sizeof(float), aflVertices, GL_STREAM_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), NULL);
+    glEnableVertexAttribArray(0);
+    delete[] aflVertices;
+
+    // Draw call
+
+    glDrawArrays(GL_TRIANGLES, 0, nTotalVertices);
+
+    glDeleteBuffers(1, &iVBO);
+    glDeleteVertexArrays(1, &iVAO);
+
+    delete[] aPolyConts;
+}
+
+char const* const gpchVertexSource = "                            \n\
+#version 330 core                                                 \n\
+layout(location = 0) in vec3 aPos;                                \n\
+uniform mat4 matMVP;                                              \n\
+                                                                  \n\
+void main() {                                                     \n\
+    gl_Position = matMVP * vec4(aPos.x, aPos.y, aPos.z, 1.0);     \n\
+}                                                                 \n\
+";
+
+char const* const gpchFragmentSource = "                 \n\
+#version 330 core                                        \n\
+out vec4 FragColor;                                      \n\
+                                                         \n\
+void main() {                                            \n\
+    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);            \n\
+}                                                        \n\
+";
+
+static void LoadShaders(RenderRequest* rr) {
+    int res;
+    char pchLog[512];
+    auto iShaderVertex = glCreateShader(GL_VERTEX_SHADER);
+    auto iShaderFragment = glCreateShader(GL_FRAGMENT_SHADER);
+
+    glShaderSource(iShaderVertex, 1, &gpchVertexSource, NULL);
+    glShaderSource(iShaderFragment, 1, &gpchFragmentSource, NULL);
+    glCompileShader(iShaderVertex);
+    glGetShaderiv(iShaderVertex, GL_COMPILE_STATUS, &res);
+    if (!res) {
+        glGetShaderInfoLog(iShaderVertex, 512, NULL, pchLog);
+        fprintf(stderr, "Vertex shader compilation has failed: '%s'\n", pchLog);
+    }
+    glCompileShader(iShaderFragment);
+    glGetShaderiv(iShaderFragment, GL_COMPILE_STATUS, &res);
+    if (!res) {
+        glGetShaderInfoLog(iShaderFragment, 512, NULL, pchLog);
+        fprintf(stderr, "Fragment shader compilation has failed: '%s'\n", pchLog);
+    }
+
+    rr->iShaderProgram = glCreateProgram();
+    glAttachShader(rr->iShaderProgram, iShaderVertex);
+    glAttachShader(rr->iShaderProgram, iShaderFragment);
+    glLinkProgram(rr->iShaderProgram);
+    glGetProgramiv(rr->iShaderProgram, GL_LINK_STATUS, &res);
+    if (!res) {
+        glGetProgramInfoLog(rr->iShaderProgram, 512, NULL, pchLog);
+        fprintf(stderr, "Shader program linking has failed: '%s'\n", pchLog);
+    }
+
+    glDeleteShader(iShaderVertex);
+    glDeleteShader(iShaderFragment);
+}
+
+static void SetupProjection(int width, int height, RenderRequest* rr) {
+    math::matrix4 matProjInv;
+    math::perspective(rr->matProj, matProjInv, width, height, M_PI / 4.0f, 0.01f, 1000.0f);
+}
+
 int main(int argc, char** argv) {
     SDL_Window* hWnd;
     SDL_GLContext hGLCTX;
     SDL_Renderer* hRenderer;
     bool bDone = false;
+    polygon_container pc;
+    RenderRequest rr;
 
     SDL_SetMainReady();
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
@@ -61,8 +218,20 @@ int main(int argc, char** argv) {
     SDL_SetRelativeMouseMode(SDL_TRUE);
 
     hGLCTX = SDL_GL_CreateContext(hWnd);
-
     gladLoadGLLoader(SDL_GL_GetProcAddress);
+
+    LoadShaders(&rr);
+    SetupProjection(800, 600, &rr);
+    rr.vCamera = { 0, 0, -4 };
+
+    rr.pcPolys = &pc;
+    polygon square;
+    square += {-1, -1};
+    square += {1, -1};
+    square += {1, 1};
+    square += {-1, 1};
+    pc += square;
+
     glClearColor(0.7, 0.2, 0.3, 1.0);
 
     while (!bDone) {
@@ -78,6 +247,7 @@ int main(int argc, char** argv) {
             }
         }
 
+        DrawPolygonSet(rr);
         SDL_GL_SwapWindow(hWnd);
     }
 
