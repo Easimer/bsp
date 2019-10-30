@@ -62,12 +62,13 @@ public:
             SetupProjection(nScreenWidth, nScreenHeight, M_PI / 4.0f);
             LoadShaders();
 
-            //glEnable(GL_CULL_FACE);
-            //glCullFace(GL_BACK);
-            //glFrontFace(GL_CCW);
-            //glEnable(GL_DEPTH_TEST);
-            //glDepthFunc(GL_LEQUAL);
-            //glClearDepth(1.0f);
+            glEnable(GL_CULL_FACE);
+            glCullFace(GL_BACK);
+            glFrontFace(GL_CCW);
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_LEQUAL);
+            glClearDepth(1.0f);
+            glViewport(0, 0, nScreenWidth, nScreenHeight);
         }
     }
 
@@ -83,7 +84,7 @@ public:
     }
 
     virtual void ClearScreen() override {
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 
     virtual void DrawPolygonSet(polygon_container const* pPolySet) override {
