@@ -176,29 +176,53 @@ public:
         delete[] aPolyConts;
     }
 
-    void DrawBSPNode(bsp_node const* pTree) {
+    void DrawBSPNodeBackToFront(bsp_node const* pTree) {
         if (pTree) {
             int side = WhichSide(
                 PlaneFromPolygon(pTree->list.polygons[0]),
                 m_vCameraPosition);
             if (side == SIDE_FRONT) {
-                DrawBSPNode(pTree->back);
+                DrawBSPNodeBackToFront(pTree->back);
                 DrawPolygonSet(&(pTree->list));
-                DrawBSPNode(pTree->front);
+                DrawBSPNodeBackToFront(pTree->front);
             } else if (side == SIDE_BACK) {
-                DrawBSPNode(pTree->front);
+                DrawBSPNodeBackToFront(pTree->front);
                 DrawPolygonSet(&(pTree->list));
-                DrawBSPNode(pTree->back);
+                DrawBSPNodeBackToFront(pTree->back);
 
             } else if (side == SIDE_ON) {
-                DrawBSPNode(pTree->front);
-                DrawBSPNode(pTree->back);
+                DrawBSPNodeBackToFront(pTree->front);
+                DrawBSPNodeBackToFront(pTree->back);
+            }
+        }
+    }
+
+    void DrawBSPNodeFrontToBack(bsp_node const* pTree) {
+        int iSide;
+        if (pTree) {
+            iSide = WhichSide(PlaneFromPolygon(pTree->list.polygons[0]), m_vCameraPosition);
+
+            switch (iSide) {
+            case SIDE_FRONT:
+                DrawBSPNodeFrontToBack(pTree->front);
+                DrawPolygonSet(&(pTree->list));
+                DrawBSPNodeFrontToBack(pTree->back);
+                break;
+            case SIDE_BACK:
+                DrawBSPNodeFrontToBack(pTree->back);
+                DrawPolygonSet(&(pTree->list));
+                DrawBSPNodeFrontToBack(pTree->front);
+                break;
+            case SIDE_ON:
+                DrawBSPNodeBackToFront(pTree->back);
+                DrawBSPNodeBackToFront(pTree->front);
+                break;
             }
         }
     }
 
     virtual void DrawBSPTree(bsp_node const* pTree) {
-        DrawBSPNode(pTree);
+        DrawBSPNodeFrontToBack(pTree);
     }
 
     virtual void SetCameraPosition(vector4 const* pPos) override {
