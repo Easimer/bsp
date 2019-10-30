@@ -110,3 +110,7 @@ inline vector4 cross(const vector4& lhs, const vector4& rhs) {
     _mm_storeu_ps(ret.v, _mm_sub_ps(v4, v5));
     return ret;
 }
+
+inline vector4 normalize(const vector4& v) {
+    return v / v.length();
+}

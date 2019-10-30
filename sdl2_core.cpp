@@ -86,67 +86,90 @@ public:
         glClear(GL_COLOR_BUFFER_BIT);
     }
 
-    math::matrix4 GenerateViewMatrix() {
-        return math::translate(
-            m_vCameraPosition[0], m_vCameraPosition[1], m_vCameraPosition[2])
-            * MakeRotationZ(m_vCameraRotation[2])
-            * MakeRotationY(m_vCameraRotation[1]);
-    }
-
     virtual void DrawPolygonSet(polygon_container const* pPolySet) override {
-        unsigned int iVAO, iVBO;
-        int iMVP, iCamPos;
+        unsigned int iVAO;
+        unsigned int aiVBO[2];
+        int iMVP, iCamPos, iCamDir;
         long long nTotalVertices = 0;
         math::matrix4 matMVP;
-        math::matrix4 matView = GenerateViewMatrix();
+        math::matrix4 matViewRotation = MakeRotationZ(m_vCameraRotation[2]) * MakeRotationY(m_vCameraRotation[1]);
+        math::matrix4 matView =
+            math::translate(m_vCameraPosition[0], m_vCameraPosition[1], m_vCameraPosition[2]) * matViewRotation;
+        polygon_container* aPolyConts;
+        unsigned nTotalFloats, nVerticesSize;
+        float* aflPositions;
+        float* aflNormals;
+        int iOffArray;
+        vector4 vCamViewDir = matViewRotation * vector4(0, 0, -1);
+
+        //fprintf(stderr, "Cam dir: %f %f %f\n", vCamViewDir[0], vCamViewDir[1], vCamViewDir[2]);
+
         // Bind shader
         glUseProgram(m_iShaderProgram);
         // Set up matrices
         matMVP = matView * m_matProj;
+
         iMVP = glGetUniformLocation(m_iShaderProgram, "matMVP");
         iCamPos = glGetUniformLocation(m_iShaderProgram, "posCamera");
+        iCamDir = glGetUniformLocation(m_iShaderProgram, "dirCamera");
         glUniformMatrix4fv(iMVP, 1, GL_FALSE, matMVP.ptr());
-        //glUniform4fv(iCamPos, 1, m_vCameraPosition.v);
+        glUniform4fv(iCamPos, 1, m_vCameraPosition.v);
+        glUniform4fv(iCamDir, 1, vCamViewDir.v);
+
         // Triangulate polygons
-        polygon_container* aPolyConts = new polygon_container[pPolySet->cnt];
+        aPolyConts = new polygon_container[pPolySet->cnt];
         for (int i = 0; i < pPolySet->cnt; i++) {
             aPolyConts[i] = FanTriangulate(pPolySet->polygons[i]);
             for (int j = 0; j < aPolyConts[i].cnt; j++) {
                 nTotalVertices += aPolyConts[i].polygons[j].cnt;
             }
         }
+
         // Upload triangles into one VAO/VBO
-        auto nTotalFloats = nTotalVertices * 3;
-        float* aflVertices = new float[nTotalFloats];
-        int iOffArray = 0;
+        nTotalFloats = nTotalVertices * 3;
+        aflPositions = new float[nTotalFloats];
+        aflNormals = new float[nTotalFloats];
+        iOffArray = 0;
         for (int iPolyContIdx = 0; iPolyContIdx < pPolySet->cnt; iPolyContIdx++) {
             auto& pc = aPolyConts[iPolyContIdx];
             for (int iPolyIdx = 0; iPolyIdx < pc.cnt; iPolyIdx++) {
                 auto& poly = pc.polygons[iPolyIdx];
+                auto normal = poly.GetNormal();
                 for (int iVtxIdx = 0; iVtxIdx < poly.cnt; iVtxIdx++, iOffArray += 3) {
                     auto& point = poly.points[iVtxIdx];
-                    aflVertices[iOffArray + 0] = point[0];
-                    aflVertices[iOffArray + 1] = point[1];
-                    aflVertices[iOffArray + 2] = point[2];
+                    aflPositions[iOffArray + 0] = point[0];
+                    aflPositions[iOffArray + 1] = point[1];
+                    aflPositions[iOffArray + 2] = point[2];
+                    aflNormals[iOffArray + 0] = normal[0];
+                    aflNormals[iOffArray + 1] = normal[1];
+                    aflNormals[iOffArray + 2] = normal[2];
                 }
             }
         }
 
-        auto nVerticesSize = nTotalVertices * 3 * sizeof(float);
+        nVerticesSize = nTotalVertices * 3 * sizeof(float);
         glGenVertexArrays(1, &iVAO);
         glBindVertexArray(iVAO);
-        glGenBuffers(1, &iVBO);
-        glBindBuffer(GL_ARRAY_BUFFER, iVBO);
-        glBufferData(GL_ARRAY_BUFFER, nVerticesSize, aflVertices, GL_STREAM_DRAW);
+        glGenBuffers(2, aiVBO);
+
+        glBindBuffer(GL_ARRAY_BUFFER, aiVBO[0]);
+        glBufferData(GL_ARRAY_BUFFER, nVerticesSize, aflPositions, GL_STREAM_DRAW);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), NULL);
         glEnableVertexAttribArray(0);
-        delete[] aflVertices;
+
+        glBindBuffer(GL_ARRAY_BUFFER, aiVBO[1]);
+        glBufferData(GL_ARRAY_BUFFER, nVerticesSize, aflNormals, GL_STREAM_DRAW);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), NULL);
+        glEnableVertexAttribArray(1);
+
+        delete[] aflPositions;
+        delete[] aflNormals;
 
         // Draw call
 
         glDrawArrays(GL_TRIANGLES, 0, nTotalVertices);
 
-        glDeleteBuffers(1, &iVBO);
+        glDeleteBuffers(2, aiVBO);
         glDeleteVertexArrays(1, &iVAO);
 
         delete[] aPolyConts;

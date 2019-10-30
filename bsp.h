@@ -105,6 +105,12 @@ struct polygon {
     lines_iterator<polygon> end() const {
         return lines_iterator<polygon>(*this, cnt);
     }
+
+    // This is only defined for triangles!!!
+    vector4 GetNormal() const {
+        assert(cnt == 3);
+        return cross(points[1] - points[0], points[1] - points[2]);
+    }
 };
 
 #define LINECONT_MAX_POINTS (POLYGON_MAX_POINTS * 2 - 1)

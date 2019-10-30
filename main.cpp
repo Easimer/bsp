@@ -19,17 +19,29 @@ static bool MoveCamera() {
     GraphicsEngine()->GetCameraPosition(&campos);
     GraphicsEngine()->GetCameraRotation(&camrot);
 
+    auto vecFwd = vector4 {
+        -sin(camrot[1]),
+        0,
+        cos(camrot[1])
+    };
+
+    auto vecRight = vector4 {
+        cos(camrot[1]),
+        0,
+        sin(camrot[1])
+    };
+
     if (Input()->IsPressed(eInputForward)) {
-        ds = ds + vector4{ 0, 0, 1 };
+        ds = ds + vecFwd;
     }
     if (Input()->IsPressed(eInputBackward)) {
-        ds = ds + vector4{ 0, 0, -1 };
+        ds = ds - vecFwd;
     }
     if (Input()->IsPressed(eInputStrafeLeft)) {
-        ds = ds + vector4{ -1, 0, 0 };
+        ds = ds + vecRight;
     }
     if (Input()->IsPressed(eInputStrafeRight)) {
-        ds = ds + vector4{ 1, 0, 0 };
+        ds = ds - vecRight;
     }
     if (Input()->IsPressed(eInputTurnLeft)) {
         dtheta = dtheta + vector4{ 0, 2 * M_PI, 0 };
@@ -44,8 +56,12 @@ static bool MoveCamera() {
     ds = dt * ds;
     dtheta = dt * dtheta;
 
-    campos = campos + MakeRotationY(camrot[1]) * ds;
+    campos = campos + ds;
     camrot = camrot + dtheta;
+
+    camrot[0] = fmod(camrot[0], 2 * M_PI);
+    camrot[1] = fmod(camrot[1], 2 * M_PI);
+    camrot[2] = fmod(camrot[2], 2 * M_PI);
 
     GraphicsEngine()->SetCameraPosition(&campos);
     GraphicsEngine()->SetCameraRotation(&camrot);
