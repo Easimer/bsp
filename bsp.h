@@ -3,6 +3,7 @@
 #include "util_vector.h"
 #include <cstddef>
 #include <iterator>
+#include <assert.h>
 
 #define POLYGON_MAX_POINTS (16)
 
@@ -24,6 +25,10 @@ struct line {
     line(const vector4& p0, const vector4& p1) : p{ p0, p1 } {
     }
     vector4 p[2];
+
+    float length() const {
+        return (p[1] - p[0]).length();
+    }
 };
 
 template<typename T>
@@ -84,6 +89,15 @@ struct polygon {
         return *this;
     }
 
+    vector4& operator[](int iVtx) {
+        return points[iVtx % cnt];
+    }
+
+    vector4 operator[](int iVtx) const {
+        return points[iVtx % cnt];
+    }
+
+
     lines_iterator<polygon> begin() const {
         return lines_iterator<polygon>(*this);
     }
@@ -103,6 +117,12 @@ struct line_container {
         if (cnt < LINECONT_MAX_POINTS) {
             points[cnt++] = point;
         }
+        return *this;
+    }
+
+    line_container& operator+=(const line& line) {
+        *this += line.p[0];
+        *this += line.p[1];
         return *this;
     }
 };
@@ -126,12 +146,30 @@ struct polygon_container {
 };
 
 struct bsp_node {
+public:
+    polygon_container list;
+    bsp_node* front;
+    bsp_node* back;
 
+    bsp_node() :
+        front(NULL), back(NULL) {
+    }
 };
 
 #define SIDE_FRONT (1)
 #define SIDE_ON (0)
 #define SIDE_BACK (-1)
 
-bool SplitPolygon(polygon* res0, polygon* res1, const polygon& splitted, const plane& splitter);
+int WhichSide(const plane& plane, const vector4& point);
+//bool SplitPolygon(polygon* res0, polygon* res1, const polygon& splitted, const plane& splitter);
+bool SplitPolygon2(polygon* res0, polygon* res1, const polygon& splitted, const plane& splitter);
 polygon_container FanTriangulate(const polygon& poly);
+bsp_node* BuildBSPTree(const polygon_container& pc);
+bool SplitLine(line* res0, line* res1, vector4* xp, const line& splitted, const plane& splitter);
+polygon FromLines(const line_container& lc);
+bool PlaneLineIntersection(vector4* res, const line& line, const plane& plane);
+
+inline plane PlaneFromPolygon(const polygon& poly) {
+    assert(poly.cnt >= 3);
+    return plane(poly.points[0], poly.points[1], poly.points[2]);
+}

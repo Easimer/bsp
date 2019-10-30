@@ -1,5 +1,6 @@
 #pragma once
 
+#include <math.h>
 #include <xmmintrin.h>
 #include <emmintrin.h>
 #include <pmmintrin.h>
@@ -20,6 +21,14 @@ struct alignas(16) vector4 {
     vector4& operator=(const vector4& other) {
         _mm_store_ps(v, _mm_load_ps(other.v));
         return *this;
+    }
+
+    float length_sq() const {
+        return v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + v[3] * v[3];
+    }
+
+    float length() const {
+        return sqrtf(length_sq());
     }
 };
 
@@ -76,6 +85,10 @@ inline bool operator==(const vector4& lhs, const vector4& rhs) {
     }
 
     return ret;
+}
+
+inline bool operator!=(const vector4& lhs, const vector4& rhs) {
+    return !(lhs == rhs);
 }
 
 inline float dot(const vector4& lhs, const vector4& rhs) {

@@ -8,9 +8,15 @@ set(SRC_BSP
 	bsp.cpp
 	bsp.h
 	util_vector.h
+	poly_part.cpp
+	poly_part.h
+	linked_list.h
 
 	util_matrix.cpp
 	util_matrix.h
+
+	util_intersection.cpp
+	util_intersection.h
 )
 
 add_library(bsp STATIC ${SRC_BSP})

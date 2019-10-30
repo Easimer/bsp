@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "IGraphicsEngine.h"
 #include "IInputHandler.h"
 
@@ -160,6 +161,31 @@ public:
         delete[] aPolyConts;
     }
 
+    void DrawBSPNode(bsp_node const* pTree) {
+        if (pTree) {
+            int side = WhichSide(
+                PlaneFromPolygon(pTree->list.polygons[0]),
+                m_vCameraPosition);
+            if (side == SIDE_FRONT) {
+                DrawBSPNode(pTree->back);
+                DrawPolygonSet(&(pTree->list));
+                DrawBSPNode(pTree->front);
+            } else if (side == SIDE_BACK) {
+                DrawBSPNode(pTree->front);
+                DrawPolygonSet(&(pTree->list));
+                DrawBSPNode(pTree->back);
+
+            } else if (side == SIDE_ON) {
+                DrawBSPNode(pTree->front);
+                DrawBSPNode(pTree->back);
+            }
+        }
+    }
+
+    virtual void DrawBSPTree(bsp_node const* pTree) {
+        DrawBSPNode(pTree);
+    }
+
     virtual void SetCameraPosition(vector4 const* pPos) override {
         if (pPos) {
             m_vCameraPosition = *pPos;
@@ -251,6 +277,7 @@ public:
         m_flFrameTime = (float)(((m_tNow - m_tLast)) / (double)SDL_GetPerformanceFrequency());
 
         SDL_GL_SwapWindow(m_pWnd);
+        SDL_Delay(30); // TODO:
     }
 
     void SetupProjection(int nWidth, int nHeight, float flFov) {
