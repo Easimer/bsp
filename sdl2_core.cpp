@@ -29,28 +29,6 @@ void main() {                                            \n\
 }                                                        \n\
 ";
 
-static math::matrix4 MakeRotationZ(float flRot) {
-    math::matrix4 ret(1.0f);
-
-    ret.idx(0, 0) = cos(flRot);
-    ret.idx(0, 1) = sin(flRot);
-    ret.idx(1, 0) = -sin(flRot);
-    ret.idx(1, 1) = cos(flRot);
-
-    return ret;
-}
-
-static math::matrix4 MakeRotationY(float flRot) {
-    math::matrix4 ret(1.0f);
-
-    ret.idx(0, 0) = cos(flRot);
-    ret.idx(0, 2) = sin(flRot);
-    ret.idx(2, 0) = -sin(flRot);
-    ret.idx(2, 2) = cos(flRot);
-
-    return ret;
-}
-
 class CSDL2Core : public IGraphicsEngine, public IInputHandler {
 public:
     virtual void Initialize(int nScreenWidth, int nScreenHeight, bool bFullscreen) override {
@@ -79,6 +57,13 @@ public:
 
             SetupProjection(nScreenWidth, nScreenHeight, M_PI / 4.0f);
             LoadShaders();
+
+            //glEnable(GL_CULL_FACE);
+            //glCullFace(GL_BACK);
+            //glFrontFace(GL_CCW);
+            //glEnable(GL_DEPTH_TEST);
+            //glDepthFunc(GL_LEQUAL);
+            //glClearDepth(1.0f);
         }
     }
 
@@ -106,7 +91,7 @@ public:
 
     virtual void DrawPolygonSet(polygon_container const* pPolySet) override {
         unsigned int iVAO, iVBO;
-        int iMVP;
+        int iMVP, iCamPos;
         long long nTotalVertices = 0;
         math::matrix4 matMVP;
         math::matrix4 matView = GenerateViewMatrix();
@@ -115,7 +100,9 @@ public:
         // Set up matrices
         matMVP = matView * m_matProj;
         iMVP = glGetUniformLocation(m_iShaderProgram, "matMVP");
+        iCamPos = glGetUniformLocation(m_iShaderProgram, "posCamera");
         glUniformMatrix4fv(iMVP, 1, GL_FALSE, matMVP.ptr());
+        glUniform4fv(iCamPos, 1, m_vCameraPosition.v);
         // Triangulate polygons
         polygon_container* aPolyConts = new polygon_container[pPolySet->cnt];
         for (int i = 0; i < pPolySet->cnt; i++) {
@@ -321,6 +308,14 @@ public:
         glDeleteShader(iShaderFragment);
 
         m_iShaderProgram = iShaderProgram;
+    }
+
+    virtual void RenderWireframe(bool bEnable) override {
+        if (bEnable) {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        } else {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
     }
 private:
     SDL_Window* m_pWnd;

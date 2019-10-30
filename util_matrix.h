@@ -1,6 +1,9 @@
 // === Copyright (c) 2017-2018 easimer.net. All rights reserved. ===
 #pragma once
 
+#include <cmath>
+#include "util_vector.h"
+
 namespace math {
     class matrix4;
 
@@ -71,4 +74,45 @@ namespace math {
     /// \brief Lexicographical comparison of two matrices
     ///
     bool operator<(const matrix4& lhs, const matrix4& rhs);
+}
+
+inline math::matrix4 MakeRotationZ(float flRot) {
+    math::matrix4 ret(1.0f);
+
+    ret.idx(0, 0) = cos(flRot);
+    ret.idx(0, 1) = sin(flRot);
+    ret.idx(1, 0) = -sin(flRot);
+    ret.idx(1, 1) = cos(flRot);
+
+    return ret;
+}
+
+inline math::matrix4 MakeRotationY(float flRot) {
+    math::matrix4 ret(1.0f);
+
+    ret.idx(0, 0) = cos(flRot);
+    ret.idx(0, 2) = sin(flRot);
+    ret.idx(2, 0) = -sin(flRot);
+    ret.idx(2, 2) = cos(flRot);
+
+    return ret;
+}
+
+inline vector4 operator*(const math::matrix4& lhs, const vector4& rhs) {
+    const float* pMat = lhs.ptr();
+    const float* pVec = rhs.v;
+    const float v0 = pVec[0];
+    const float v1 = pVec[1];
+    const float v2 = pVec[2];
+    const float v3 = pVec[3];
+    float r[4];
+    for (int i = 0; i < 4; i++) {
+        float c0 = pMat[i + 0 * 4];
+        float c1 = pMat[i + 1 * 4];
+        float c2 = pMat[i + 2 * 4];
+        float c3 = pMat[i + 3 * 4];
+
+        r[i] = c0 * v0 + c1 * v1 + c2 * v2 + c3 * v3;
+    }
+    return vector4(r[0], r[1], r[2], r[3]);
 }

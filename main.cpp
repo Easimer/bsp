@@ -44,7 +44,7 @@ static bool MoveCamera() {
     ds = dt * ds;
     dtheta = dt * dtheta;
 
-    campos = campos + ds;
+    campos = campos + MakeRotationY(camrot[1]) * ds;
     camrot = camrot + dtheta;
 
     GraphicsEngine()->SetCameraPosition(&campos);
@@ -63,10 +63,10 @@ polygon_container From2D(int nPointPairs, int* pPoints) {
         auto p1x = (float)pPoints[i * 4 + 2];
         auto p1y = (float)pPoints[i * 4 + 3];
 
-        sq += {p0x, 1, p0y};
-        sq += {p0x, 0, p0y};
-        sq += {p1x, 0, p1y};
-        sq += {p1x, 1, p1y};
+        sq += {p0x, +0.25f, p0y};
+        sq += {p0x, -0.25f, p0y};
+        sq += {p1x, -0.25f, p1y};
+        sq += {p1x, +0.25f, p1y};
 
         ret += sq;
     }
@@ -76,34 +76,24 @@ polygon_container From2D(int nPointPairs, int* pPoints) {
 
 int main(int argc, char** argv) {
     bool bDone = false;
-    polygon_container pc, pcs;
+    polygon_container pc;
 
     int asd[] = {
-        1, 0, 1, 2,
-        2, 1, 3, 1,
+        0, 2, 1, 1,
+        1, 1, 2, 1,
+        2, 1, 3, 2,
+        3, 2, 3, 4,
+        3, 4, 0, 4,
+        0, 4, 0, 2,
     };
     pc = From2D(sizeof(asd) / sizeof(int) / 4, asd);
     auto tree = BuildBSPTree(pc);
 
-    polygon front, back;
-    auto P = PlaneFromPolygon(pc.polygons[0]);
-    if (SplitPolygon2(&front, &back, pc.polygons[1], P)) {
-        pcs += front; pcs += back;
-    } else {
-        fprintf(stderr, "FUCK\n");
-        pcs += pc.polygons[1];
-    }
-
-    P = PlaneFromPolygon(pc.polygons[1]);
-    if (SplitPolygon2(&front, &back, pc.polygons[0], P)) {
-        pcs += front; pcs += back;
-    } else {
-        fprintf(stderr, "FUCK\n");
-        pcs += pc.polygons[0];
-    }
-
     GraphicsEngine()->Initialize(800, 600, false);
     Input()->Initialize();
+    GraphicsEngine()->RenderWireframe(false);
+    vector4 posCamInit(-0.883, 0, -1.772);
+    GraphicsEngine()->SetCameraPosition(&posCamInit);
 
     while (!bDone) {
         eInputAction eInput;
@@ -113,14 +103,12 @@ int main(int argc, char** argv) {
         bDone = MoveCamera();
 
         GraphicsEngine()->ClearScreen();
-        GraphicsEngine()->DrawPolygonSet(&pcs);
-        //GraphicsEngine()->DrawBSPTree(tree);
+        GraphicsEngine()->DrawBSPTree(tree);
         GraphicsEngine()->SwapScreen();
     }
 
     Input()->Shutdown();
     GraphicsEngine()->Shutdown();
-
 
     return EXIT_SUCCESS;
 }

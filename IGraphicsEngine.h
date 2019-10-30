@@ -18,6 +18,8 @@ public:
     virtual void GetCameraRotation(vector4* pRot) = 0;
 
     virtual float GetFrameTime() = 0;
+
+    virtual void RenderWireframe(bool bEnable) = 0;
 };
 
 IGraphicsEngine* GraphicsEngine();

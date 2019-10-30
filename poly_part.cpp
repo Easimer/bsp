@@ -186,7 +186,7 @@ bool SplitPolygon2(polygon* pFront, polygon* pBack, const polygon& poly, const p
         auto P0 = poly[iVtx];
         auto P1 = poly[iVtx + 1];
         //if (PlaneLineIntersection(&xp[iXP], { P0, P1 }, P)) {
-        if (IntersectSegmentByPlane(NULL, NULL, &xp[iXP], { P0, P1 }, P)) {
+        if (iXP < 2 && IntersectSegmentByPlane(NULL, NULL, &xp[iXP], { P0, P1 }, P)) {
             assert(iXP < 2);
             auto l0 = line { P0, xp[iXP] };
             auto l1 = line { xp[iXP], P1 };
@@ -196,8 +196,10 @@ bool SplitPolygon2(polygon* pFront, polygon* pBack, const polygon& poly, const p
             (*cur) += xp[iXP];
             (*cur) += P1;
             iXP++;
+            assert(iXP <= 2);
             PrintTwoLines("INTERSECTION! Added two new edges:", l0, l1);
         } else {
+            assert(iXP <= 2);
             (*cur) += P0;
             (*cur) += P1;
         }

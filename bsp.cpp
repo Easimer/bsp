@@ -279,6 +279,62 @@ polygon_container FanTriangulate(const polygon& poly) {
     return ret;
 }
 
+static bsp_node* BuildBSPTree2(bsp_node* pNode) {
+    bsp_node* pRet = NULL;
+
+    if (pNode) {
+        bsp_node* tmp = new bsp_node;
+        polygon_container *pcFront, *pcBack;
+        auto& polyRoot = pNode->list.polygons[0];
+        auto planeRoot = PlaneFromPolygon(polyRoot);
+        pRet = new bsp_node;
+        pRet->list += polyRoot;
+
+
+        pcFront = new polygon_container;
+        pcBack = new polygon_container;
+
+        for (int iPoly = 1; iPoly < pNode->list.cnt; iPoly++) {
+            polygon *polyFront, *polyBack;
+            polyFront = new polygon;
+            polyBack = new polygon;
+            auto& splitted = pNode->list.polygons[iPoly];
+            if (SplitPolygon2(polyFront, polyBack, splitted, planeRoot)) {
+                (*pcFront) += *polyFront;
+                (*pcBack) += *polyBack;
+            } else {
+                auto side = WhichSide(planeRoot, pNode->list.polygons[iPoly].points[0]);
+                switch (side) {
+                case SIDE_FRONT:
+                    (*pcFront) += pNode->list.polygons[iPoly];
+                    break;
+                case SIDE_BACK:
+                    (*pcBack) += pNode->list.polygons[iPoly];
+                    break;
+                case SIDE_ON:
+                    pRet->list += pNode->list.polygons[iPoly];
+                    break;
+                }
+
+            }
+            delete polyFront; delete polyBack;
+        }
+
+        if (pcFront->cnt > 0) {
+            tmp->list = *pcFront;
+            pRet->front = BuildBSPTree2(tmp);
+        }
+        if (pcBack->cnt > 0) {
+            tmp->list = *pcBack;
+            pRet->back = BuildBSPTree2(tmp);
+        }
+        delete tmp;
+        delete pcFront; delete pcBack;
+    }
+
+    return pRet;
+}
+
 static bsp_node* BuildBSPTree(bsp_node* pNode) {
     bsp_node* ret = NULL;
     if (pNode) {
@@ -336,7 +392,7 @@ bsp_node* BuildBSPTree(const polygon_container& pc) {
     bsp_node* pRoot = new bsp_node;
     pRoot->list = pc;
 
-    ret = BuildBSPTree(pRoot);
+    ret = BuildBSPTree2(pRoot);
 
     delete pRoot;
 
