@@ -10,24 +10,28 @@
 #include "util_vector.h"
 #include "bsp.h"
 
-char const* const gpchVertexSource = "                            \n\
-#version 330 core                                                 \n\
-layout(location = 0) in vec3 aPos;                                \n\
-uniform mat4 matMVP;                                              \n\
-                                                                  \n\
-void main() {                                                     \n\
-    gl_Position = matMVP * vec4(aPos.x, aPos.y, aPos.z, 1.0);     \n\
-}                                                                 \n\
-";
+static bool ReadEntireFileIntoMemory(char const* pchPath, char** pContents, unsigned* pLen) {
+    bool bRet = false;
 
-char const* const gpchFragmentSource = "                 \n\
-#version 330 core                                        \n\
-out vec4 FragColor;                                      \n\
-                                                         \n\
-void main() {                                            \n\
-    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);            \n\
-}                                                        \n\
-";
+    FILE* hFile = fopen(pchPath, "r+b");
+
+    if (hFile) {
+        fseek(hFile, 0, SEEK_END);
+        *pLen = ftell(hFile);
+        *pContents = new char[(*pLen) + 1];
+        fseek(hFile, 0, SEEK_SET);
+        fread(*pContents, 1, *pLen, hFile);
+        (*pContents)[(*pLen)] = 0;
+        fclose(hFile);
+        bRet = true;
+    }
+
+    return bRet;
+}
+
+static void FreeFileFromMemory(char* pContents) {
+    free(pContents);
+}
 
 class CSDL2Core : public IGraphicsEngine, public IInputHandler {
 public:
@@ -102,7 +106,7 @@ public:
         iMVP = glGetUniformLocation(m_iShaderProgram, "matMVP");
         iCamPos = glGetUniformLocation(m_iShaderProgram, "posCamera");
         glUniformMatrix4fv(iMVP, 1, GL_FALSE, matMVP.ptr());
-        glUniform4fv(iCamPos, 1, m_vCameraPosition.v);
+        //glUniform4fv(iCamPos, 1, m_vCameraPosition.v);
         // Triangulate polygons
         polygon_container* aPolyConts = new polygon_container[pPolySet->cnt];
         for (int i = 0; i < pPolySet->cnt; i++) {
@@ -279,8 +283,15 @@ public:
         auto iShaderVertex = glCreateShader(GL_VERTEX_SHADER);
         auto iShaderFragment = glCreateShader(GL_FRAGMENT_SHADER);
 
-        glShaderSource(iShaderVertex, 1, &gpchVertexSource, NULL);
-        glShaderSource(iShaderFragment, 1, &gpchFragmentSource, NULL);
+        unsigned nVertexLen, nFragmentLen;
+        char* pchVertexSource;
+        char* pchFragmentSource;
+
+        ReadEntireFileIntoMemory("data/shaders/basic.vert.glsl", &pchVertexSource, &nVertexLen);
+        ReadEntireFileIntoMemory("data/shaders/basic.frag.glsl", &pchFragmentSource, &nFragmentLen);
+
+        glShaderSource(iShaderVertex, 1, &pchVertexSource, NULL);
+        glShaderSource(iShaderFragment, 1, &pchFragmentSource, NULL);
         glCompileShader(iShaderVertex);
         glGetShaderiv(iShaderVertex, GL_COMPILE_STATUS, &res);
         if (!res) {
@@ -308,6 +319,9 @@ public:
         glDeleteShader(iShaderFragment);
 
         m_iShaderProgram = iShaderProgram;
+
+        FreeFileFromMemory(pchFragmentSource);
+        FreeFileFromMemory(pchVertexSource);
     }
 
     virtual void RenderWireframe(bool bEnable) override {

@@ -28,7 +28,12 @@ set(SRC_EXE
 	IGraphicsEngine.h
 
 	sdl2_core.cpp
+
+	data/shaders/basic.vert.glsl
+	data/shaders/basic.frag.glsl
 )
 
 add_executable(bsp_main ${SRC_EXE})
 target_link_libraries(bsp_main bsp SDL2-static glad)
+
+file(COPY data DESTINATION ${CMAKE_BINARY_DIR})
