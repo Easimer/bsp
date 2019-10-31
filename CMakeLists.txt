@@ -17,6 +17,9 @@ set(SRC_BSP
 
 	util_intersection.cpp
 	util_intersection.h
+
+	util_geostruct.cpp
+	util_geostruct.h
 )
 
 add_library(bsp STATIC ${SRC_BSP})
