@@ -2,10 +2,10 @@
 
 #include "bsp.h"
 
-bool IntersectSegmentByPlane(line* pLineFront, line* pLineBack,
+bool IntersectSegmentByPlane(Line* pLineFront, Line* pLineBack,
     vector4* pXP,
-    const line& line, const plane& P);
+    const Line& line, const Plane& P);
 
-bool IntersectSegmentByPlane(line* pLineFront, line* pLineBack,
+bool IntersectSegmentByPlane(Line* pLineFront, Line* pLineBack,
     vector4* pXP,
-    const line& line, const float aflPlaneCoefficients[4]);
+    const Line& line, const float aflPlaneCoefficients[4]);

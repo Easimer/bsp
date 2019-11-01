@@ -69,11 +69,11 @@ static bool MoveCamera() {
     return ret;
 }
 
-polygon_container From2D(int nPointPairs, int* pPoints) {
-    polygon_container ret;
+PolygonContainer From2D(int nPointPairs, int* pPoints) {
+    PolygonContainer ret;
 
     for (int i = 0; i < nPointPairs; i++) {
-        polygon sq;
+        Polygon sq;
         auto p0x = (float)pPoints[i * 4 + 0];
         auto p0y = (float)pPoints[i * 4 + 1];
         auto p1x = (float)pPoints[i * 4 + 2];
@@ -92,7 +92,7 @@ polygon_container From2D(int nPointPairs, int* pPoints) {
 
 int main(int argc, char** argv) {
     bool bDone = false;
-    polygon_container pc;
+    PolygonContainer pc;
 
     int asd[] = {
         0, 2, 1, 1,

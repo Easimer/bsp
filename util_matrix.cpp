@@ -19,7 +19,7 @@ namespace math {
     }
 
     bool invert(matrix4& m) {
-        double inv[16], det;
+        float inv[16], det;
 
         inv[0] = m.m_flValues[5] * m.m_flValues[10] * m.m_flValues[15] -
             m.m_flValues[5] * m.m_flValues[11] * m.m_flValues[14] -
@@ -138,7 +138,7 @@ namespace math {
         if (det == 0)
             return false;
 
-        det = 1.0 / det;
+        det = 1.0f / det;
 
         for (int i = 0; i < 16; i++) {
             m.m_flValues[i] = (float)(inv[i] * det);

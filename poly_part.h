@@ -2,4 +2,4 @@
 
 #include "bsp.h"
 
-bool PartitionPolygonByPlane(polygon* front, polygon* back, const polygon& poly, const plane& plane);
+bool PartitionPolygonByPlane(Polygon* front, Polygon* back, const Polygon& poly, const Plane& plane);

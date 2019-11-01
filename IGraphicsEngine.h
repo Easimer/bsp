@@ -9,7 +9,7 @@ public:
 
     virtual void ClearScreen() = 0;
     virtual void SwapScreen() = 0;
-    virtual void DrawPolygonSet(polygon_container const* pPolySet) = 0;
+    virtual void DrawPolygonSet(PolygonContainer const* pPolySet) = 0;
     virtual void DrawBSPTree(bsp_node const* pTree) = 0;
 
     virtual void SetCameraPosition(vector4 const* pPos) = 0;

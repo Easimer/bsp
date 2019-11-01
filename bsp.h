@@ -5,7 +5,7 @@
 
 struct bsp_node {
 public:
-    polygon_container list;
+    PolygonContainer list;
     bsp_node* front;
     bsp_node* back;
 
@@ -18,11 +18,10 @@ public:
 #define SIDE_ON (0)
 #define SIDE_BACK (-1)
 
-int WhichSide(const plane& plane, const vector4& point);
-//bool SplitPolygon(polygon* res0, polygon* res1, const polygon& splitted, const plane& splitter);
-bool SplitPolygon2(polygon* res0, polygon* res1, const polygon& splitted, const plane& splitter);
-polygon_container FanTriangulate(const polygon& poly);
-bsp_node* BuildBSPTree(const polygon_container& pc);
-bool SplitLine(line* res0, line* res1, vector4* xp, const line& splitted, const plane& splitter);
-polygon FromLines(const line_container& lc);
-bool PlaneLineIntersection(vector4* res, const line& line, const plane& plane);
+int WhichSide(const Plane& plane, const vector4& point);
+bool SplitPolygon2(Polygon* res0, Polygon* res1, const Polygon& splitted, const Plane& splitter);
+PolygonContainer FanTriangulate(const Polygon& poly);
+bsp_node* BuildBSPTree(const PolygonContainer& pc);
+bool SplitLine(Line* res0, Line* res1, vector4* xp, const Line& splitted, const Plane& splitter);
+Polygon FromLines(const LineContainer& lc);
+bool PlaneLineIntersection(vector4* res, const Line& line, const Plane& plane);

@@ -18,7 +18,7 @@ static bool ReadEntireFileIntoMemory(char const* pchPath, char** pContents, unsi
     if (hFile) {
         fseek(hFile, 0, SEEK_END);
         *pLen = ftell(hFile);
-        *pContents = new char[(*pLen) + 1];
+        *pContents = new char[((unsigned long)*pLen) + 1];
         fseek(hFile, 0, SEEK_SET);
         fread(*pContents, 1, *pLen, hFile);
         (*pContents)[(*pLen)] = 0;
@@ -87,7 +87,7 @@ public:
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 
-    virtual void DrawPolygonSet(polygon_container const* pPolySet) override {
+    virtual void DrawPolygonSet(PolygonContainer const* pPolySet) override {
         unsigned int iVAO;
         unsigned int aiVBO[2];
         int iMVP, iCamPos, iCamDir;
@@ -96,7 +96,7 @@ public:
         math::matrix4 matViewRotation = MakeRotationZ(m_vCameraRotation[2]) * MakeRotationY(m_vCameraRotation[1]);
         math::matrix4 matView =
             math::translate(m_vCameraPosition[0], m_vCameraPosition[1], m_vCameraPosition[2]) * matViewRotation;
-        polygon_container* aPolyConts;
+        PolygonContainer* aPolyConts;
         unsigned nTotalFloats, nVerticesSize;
         float* aflPositions;
         float* aflNormals;
@@ -118,11 +118,11 @@ public:
         glUniform4fv(iCamDir, 1, vCamViewDir.v);
 
         // Triangulate polygons
-        aPolyConts = new polygon_container[pPolySet->cnt];
-        for (int i = 0; i < pPolySet->cnt; i++) {
-            aPolyConts[i] = FanTriangulate(pPolySet->polygons[i]);
-            for (int j = 0; j < aPolyConts[i].cnt; j++) {
-                nTotalVertices += aPolyConts[i].polygons[j].cnt;
+        aPolyConts = new PolygonContainer[pPolySet->Count()];
+        for (int i = 0; i < pPolySet->Count(); i++) {
+            aPolyConts[i] = FanTriangulate(pPolySet->GetPolygon(i));
+            for (int j = 0; j < aPolyConts[i].Count(); j++) {
+                nTotalVertices += aPolyConts[i][j].Count();
             }
         }
 
@@ -131,13 +131,13 @@ public:
         aflPositions = new float[nTotalFloats];
         aflNormals = new float[nTotalFloats];
         iOffArray = 0;
-        for (int iPolyContIdx = 0; iPolyContIdx < pPolySet->cnt; iPolyContIdx++) {
+        for (int iPolyContIdx = 0; iPolyContIdx < pPolySet->Count(); iPolyContIdx++) {
             auto& pc = aPolyConts[iPolyContIdx];
-            for (int iPolyIdx = 0; iPolyIdx < pc.cnt; iPolyIdx++) {
-                auto& poly = pc.polygons[iPolyIdx];
+            for (int iPolyIdx = 0; iPolyIdx < pc.Count(); iPolyIdx++) {
+                auto& poly = pc[iPolyIdx];
                 auto normal = poly.GetNormal();
-                for (int iVtxIdx = 0; iVtxIdx < poly.cnt; iVtxIdx++, iOffArray += 3) {
-                    auto& point = poly.points[iVtxIdx];
+                for (int iVtxIdx = 0; iVtxIdx < poly.Count(); iVtxIdx++, iOffArray += 3) {
+                    auto& point = poly[iVtxIdx];
                     aflPositions[iOffArray + 0] = point[0];
                     aflPositions[iOffArray + 1] = point[1];
                     aflPositions[iOffArray + 2] = point[2];
@@ -179,7 +179,7 @@ public:
     void DrawBSPNodeBackToFront(bsp_node const* pTree) {
         if (pTree) {
             int side = WhichSide(
-                PlaneFromPolygon(pTree->list.polygons[0]),
+                PlaneFromPolygon(pTree->list[0]),
                 m_vCameraPosition);
             if (side == SIDE_FRONT) {
                 DrawBSPNodeBackToFront(pTree->back);
@@ -200,7 +200,7 @@ public:
     void DrawBSPNodeFrontToBack(bsp_node const* pTree) {
         int iSide;
         if (pTree) {
-            iSide = WhichSide(PlaneFromPolygon(pTree->list.polygons[0]), m_vCameraPosition);
+            iSide = WhichSide(PlaneFromPolygon(pTree->list[0]), m_vCameraPosition);
 
             switch (iSide) {
             case SIDE_FRONT:

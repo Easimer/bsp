@@ -9,13 +9,12 @@
 #define LINECONT_MAX_POINTS (POLYGON_MAX_POINTS * 2 - 1)
 #define POLYCONT_MAX_POLYS ((POLYGON_MAX_POINTS - 2) * 3)
 
-struct Plane {
+class Plane {
+public:
     Plane() {}
     Plane(vector4 p0, vector4 p1, vector4 p2)
         : p{ p0, p1, p2 } {
     }
-
-    [[deprecated("Direct access is deprecated. Use indexing operator.")]] vector4 p[3];
 
     int Count() const {
         return 3;
@@ -28,26 +27,35 @@ struct Plane {
     vector4& operator[](int iIdx) {
         return p[iIdx];
     }
-};
 
-using plane [[deprecated]] = Plane;
+private:
+    vector4 p[3];
+};
 
 struct Line {
     Line() {}
     Line(const vector4& p0, const vector4& p1) : p{ p0, p1 } {
     }
-    [[deprecated("Direct access is deprecated. Use indexing operator.")]] vector4 p[2];
-
-    [[deprecated("Use Length()")]] float length() const {
-        return (p[1] - p[0]).length();
-    }
 
     float Length() const {
         return (p[1] - p[0]).length();
     }
-};
 
-using line [[deprecated]] = Line;
+    int Count() const {
+        return 2;
+    }
+
+    const vector4& operator[](int iIdx) const {
+        return p[iIdx];
+    }
+
+    vector4& operator[](int iIdx) {
+        return p[iIdx];
+    }
+
+private:
+    vector4 p[2];
+};
 
 template<typename T>
 struct LinesIterator {
@@ -65,7 +73,7 @@ struct LinesIterator {
     const T& m_poly;
     int m_iLine;
 
-    line operator*() const {
+    Line operator*() const {
         return GetLine(m_iLine);
     }
 
@@ -77,7 +85,7 @@ struct LinesIterator {
         return !(*this == it);
     }
 
-    line operator++(int) {
+    Line operator++(int) {
         auto ret = GetLine(m_iLine);
         ++* this;
         return ret;
@@ -89,17 +97,12 @@ struct LinesIterator {
     }
 
     Line GetLine(int idx) const {
-        return Line(m_poly.points[idx], m_poly.points[(idx+ 1) % m_poly.cnt]);
+        return Line(m_poly[idx], m_poly[(idx+ 1) % m_poly.Count()]);
     }
 };
 
-template<typename T>
-using lines_iterator [[deprecated]] = LinesIterator<T>;
-
 struct Polygon {
-    [[deprecated("Use Count()")]] int cnt;
-    [[deprecated("Use indexing operator.")]] vector4 points[POLYGON_MAX_POINTS];
-
+public:
     Polygon() : cnt(0) {
     }
 
@@ -136,14 +139,15 @@ struct Polygon {
     int Count() const {
         return cnt;
     }
+
+private:
+    int cnt;
+    vector4 points[POLYGON_MAX_POINTS];
+
 };
 
-using polygon [[deprecated]] = Polygon;
-
-struct LineContainer {
-    [[deprecated("Use Count()")]] int cnt = 0;
-    [[deprecated("Use indexing operator")]] vector4 points[LINECONT_MAX_POINTS];
-
+class LineContainer {
+public:
     LineContainer& operator+=(const vector4& point) {
         if (cnt < LINECONT_MAX_POINTS) {
             points[cnt++] = point;
@@ -152,8 +156,8 @@ struct LineContainer {
     }
 
     LineContainer& operator+=(const Line& line) {
-        *this += line.p[0];
-        *this += line.p[1];
+        *this += line[0];
+        *this += line[1];
         return *this;
     }
 
@@ -168,19 +172,19 @@ struct LineContainer {
     vector4& operator[](int iIdx) {
         return points[iIdx];
     }
+private:
+    int cnt = 0;
+    vector4 points[LINECONT_MAX_POINTS];
+
 };
 
-using line_container [[deprecated]] = LineContainer;
-
-struct PolygonContainer {
-    [[deprecated]] int cnt = 0;
-    [[deprecated]] Polygon polygons[POLYCONT_MAX_POLYS];
-
+class PolygonContainer {
+public:
     PolygonContainer()
         : cnt(0) {
     }
 
-    PolygonContainer& operator+=(const polygon& poly) {
+    PolygonContainer& operator+=(const Polygon& poly) {
         if (cnt < POLYCONT_MAX_POLYS) {
             polygons[cnt++] = poly;
         }
@@ -191,22 +195,32 @@ struct PolygonContainer {
         return cnt;
     }
 
-    const polygon& operator[](int iIdx) const {
+    const Polygon& operator[](int iIdx) const {
         return polygons[iIdx];
     }
 
-    polygon& operator[](int iIdx) {
+    Polygon& operator[](int iIdx) {
         return polygons[iIdx];
     }
+
+    const Polygon& GetPolygon(int iIdx) const {
+        return polygons[iIdx];
+    }
+
+    Polygon& GetPolygon(int iIdx) {
+        return polygons[iIdx];
+    }
+
+private:
+    int cnt = 0;
+    Polygon polygons[POLYCONT_MAX_POLYS];
 };
 
-using polygon_container [[deprecated]] = PolygonContainer;
-
 inline Plane PlaneFromPolygon(const Polygon& poly) {
-    assert(poly.cnt >= 3);
-    return Plane(poly.points[0], poly.points[1], poly.points[2]);
+    assert(poly.Count() >= 3);
+    return Plane(poly[0], poly[1], poly[2]);
 }
 
 inline vector4 normal(const Plane& plane) {
-    return cross(plane.p[2] - plane.p[0], plane.p[2] - plane.p[1]);
+    return cross(plane[2] - plane[0], plane[2] - plane[1]);
 }
