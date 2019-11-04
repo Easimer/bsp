@@ -30,6 +30,8 @@ set(SRC_EXE
 	IInputHandler.h
 	IGraphicsEngine.h
 
+	stb_image.cpp
+	stb_image.h
 	sdl2_core.cpp
 
 	data/shaders/basic.vert.glsl

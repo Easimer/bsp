@@ -93,6 +93,7 @@ PolygonContainer From2D(int nPointPairs, int* pPoints) {
 int main(int argc, char** argv) {
     bool bDone = false;
     PolygonContainer pc;
+    HTEXTURE hSkybox;
 
     int asd[] = {
         0, 2, 1, 1,
@@ -111,6 +112,17 @@ int main(int argc, char** argv) {
     vector4 posCamInit(-0.883, 0, -1.772);
     GraphicsEngine()->SetCameraPosition(&posCamInit);
 
+    // Setup skybox
+    char const* aSkybox[6] = {
+        "data/textures/ely_sunset/sunset_rt.tga",
+        "data/textures/ely_sunset/sunset_lf.tga",
+        "data/textures/ely_sunset/sunset_up.tga",
+        "data/textures/ely_sunset/sunset_dn.tga",
+        "data/textures/ely_sunset/sunset_bk.tga",
+        "data/textures/ely_sunset/sunset_ft.tga",
+    };
+    GraphicsEngine()->LoadCubemapTexture(&hSkybox, aSkybox);
+
     while (!bDone) {
         eInputAction eInput;
         int bRelease;
@@ -120,6 +132,7 @@ int main(int argc, char** argv) {
 
         GraphicsEngine()->ClearScreen();
         GraphicsEngine()->DrawBSPTree(tree);
+        GraphicsEngine()->DrawSkybox(hSkybox);
         GraphicsEngine()->SwapScreen();
     }
 

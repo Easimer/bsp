@@ -2,6 +2,14 @@
 
 #include "bsp.h"
 
+using HTEXTURE = unsigned long long;
+#define TEXTURE_CUBEMAP_POSITIVE_X (0)
+#define TEXTURE_CUBEMAP_NEGATIVE_X (TEXTURE_CUBEMAP_POSITIVE_X + 1)
+#define TEXTURE_CUBEMAP_POSITIVE_Y (TEXTURE_CUBEMAP_NEGATIVE_X + 1)
+#define TEXTURE_CUBEMAP_NEGATIVE_Y (TEXTURE_CUBEMAP_POSITIVE_Y + 1)
+#define TEXTURE_CUBEMAP_POSITIVE_Z (TEXTURE_CUBEMAP_NEGATIVE_Y + 1)
+#define TEXTURE_CUBEMAP_NEGATIVE_Z (TEXTURE_CUBEMAP_POSITIVE_Z + 1)
+
 class IGraphicsEngine {
 public:
     virtual void Initialize(int nScreenWidth, int nScreenHeight, bool bFullscreen) = 0;
@@ -20,6 +28,11 @@ public:
     virtual float GetFrameTime() = 0;
 
     virtual void RenderWireframe(bool bEnable) = 0;
+
+    virtual int LoadTexture(HTEXTURE* pHandle, char const* pchPath) = 0;
+    virtual int LoadCubemapTexture(HTEXTURE* pHandle, char const* pchPathFaces[6]) = 0;
+
+    virtual void DrawSkybox(HTEXTURE hCubemapTexture) = 0;
 };
 
 IGraphicsEngine* GraphicsEngine();
